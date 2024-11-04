@@ -20,7 +20,7 @@ class LayeredGraph:
         self._layered_graph = dict()
         self._layered_graph_backlog = dict()
         self._layer_nodes = []
-        self._layer_node_pairs = []
+        self._layer_node_pairs: List[LayerNodePair] = []
         self._scheduling_algorithm = None
         self._previous_update_time = time.time()
         self._capacity = dict()
@@ -281,3 +281,38 @@ class LayeredGraph:
         self._configs = (time_config, energy_config)
 
         return 1.7 # 측정 결과 초당 1.7w를 소모함
+    
+    def get_t_wait(self):
+        computing_backlog = {
+            "end": 0,
+            "edge": 0,
+            "cloud": 0
+        }
+        transfer_backlog = {
+            "end": 0,
+            "edge": 0,
+            "cloud": 0
+        }
+
+        for link in self._layer_node_pairs:
+            if link.get_source().get_ip() == "192.168.1.5":
+                node_name = "end"   
+            elif link.get_source().get_ip() == "192.168.1.7":
+                node_name = "edge"
+            elif link.get_source().get_ip() == "192.168.1.8":
+                node_name = "cloud"
+
+            # transfer
+            if link.is_same_layer():
+                transfer_backlog[node_name] += self._layered_graph_backlog[link]
+            
+            # compute
+            elif link.is_same_node():
+                computing_backlog[node_name] += self._layered_graph_backlog[link]
+
+
+        end_wait_time = transfer_backlog["end"] / self._network_performance_info[0]["end"] + computing_backlog["end"] / self._network_performance_info[1]["end"]
+        edge_wait_time = transfer_backlog["edge"] / self._network_performance_info[0]["edge"] + computing_backlog["edge"] / self._network_performance_info[1]["edge"]
+        cloud_wait_time = transfer_backlog["cloud"] / self._network_performance_info[0]["cloud"] + computing_backlog["cloud"] / self._network_performance_info[1]["cloud"]
+
+        return end_wait_time + edge_wait_time + cloud_wait_time
