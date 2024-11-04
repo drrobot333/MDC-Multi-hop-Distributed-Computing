@@ -16,7 +16,6 @@ class JDPCRA:
         partition_point = self._init_BS(computing_ratios, computing_order, transfer_order, arrival_rate, edge_computing_resource)
         partition_point = self._Ad_BS(computing_ratios, computing_order, arrival_rate, edge_computing_resource, partition_point)
         
-        
         partition_point = self._joint_adjust(computing_ratios, transfer_ratios, arrival_rate, network_info, partition_point, input_size)
         path = self._make_path(source_node, destination_node, layered_graph, partition_point)
         
@@ -111,30 +110,43 @@ class JDPCRA:
         sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
         
         count = 0
-        for node in sorted_neighbors:
-            if count >= partition_point:
-                break 
+        # for node in sorted_neighbors:
+        #     if count >= partition_point:
+        #         break 
             
-            if edge_top_node.is_same_node(node):
-                path.append(node)
-                count += 1
+        #     if edge_top_node.is_same_node(node):
+        #         print("edge node", node, end=", ")
+        #         path.append(node)
+        #         count += 1
+        while count < partition_point:
+            neighbors = layered_graph[path[-1]][:]
+            sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
+            for node in sorted_neighbors:
+                if edge_top_node.is_same_node(node):
+                    path.append(node)
+                    count += 1
+
+                    break
         
-        edge_last_node = node 
+        edge_last_node = path[-1]
         neighbors = layered_graph[edge_last_node][:]
         sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
         
         for node in sorted_neighbors:
-            if destination_node.is_same_node(node):
+            if not source_node.is_same_node(node):
                 path.append(node)
                 break 
         
-        cloud_node = node
+        cloud_node = path[-1]
         cloud_layer = cloud_node.get_layer()
         neighbors = layered_graph[cloud_node][:]
         sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
         
-        for node in neighbors:
-            if destination_node.is_same_node(node) and cloud_layer < node.get_layer():
-                path.append(node)
+        while not destination_node.is_same_layer_node(path[-1]):
+            neighbors = layered_graph[path[-1]][:]
+
+            for node in neighbors:
+                if destination_node.is_same_node(node) and cloud_layer < node.get_layer():
+                    path.append(node)
         
         return path
