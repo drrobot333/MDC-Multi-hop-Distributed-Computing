@@ -316,6 +316,6 @@ class LayeredGraph:
 
         end_wait_time = transfer_backlog["end"] / self._network_performance_info[0]["end"] + computing_backlog["end"] / self._network_performance_info[1]["end"]
         edge_wait_time = transfer_backlog["edge"] / self._network_performance_info[0]["edge"] + computing_backlog["edge"] / self._network_performance_info[1]["edge"]
-        cloud_wait_time = transfer_backlog["cloud"] / self._network_performance_info[0]["cloud"] + computing_backlog["cloud"] / self._network_performance_info[1]["cloud"]
+        cloud_wait_time = computing_backlog["cloud"] / self._network_performance_info[1]["cloud"]
 
         return end_wait_time + edge_wait_time + cloud_wait_time
