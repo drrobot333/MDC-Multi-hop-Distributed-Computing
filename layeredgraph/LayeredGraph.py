@@ -8,6 +8,10 @@ from scheduling import Dijkstra
 
 import importlib
 import time
+import numpy as np
+import copy
+import pandas as pd
+import glob
 
 class LayeredGraph:
     def __init__(self, network_info: NetworkInfo):
@@ -24,9 +28,18 @@ class LayeredGraph:
         self._max_layer_depth = 0
 
         self._dnn_models = DNNModels(self._network_info, "cpu")
+        
+        self._alpha = 0.5
+        self._expected_arrival_rate = 0
 
+        self._network_performance_info = None
+        self._idle_network_performance_info = None
+
+        self._configs = None
         self.init_graph()
         self.init_algorithm()
+        self.init_network_performance_info()
+        
 
     def set_graph(self, links):
         self._previous_update_time = time.time()
@@ -152,14 +165,34 @@ class LayeredGraph:
 
     def init_algorithm(self):
         module_path = self._network_info.get_scheduling_algorithm().replace(".py", "").replace("/", ".")
-        self._scheduling_algorithm: Dijkstra = importlib.import_module(module_path).Dijkstra()
-
+        self._algorithm_class = module_path.split(".")[-1]
+        # self._scheduling_algorithm: Dijkstra = importlib.import_module(module_path).Dijkstra()
+        self._scheduling_algorithm = getattr(importlib.import_module(module_path), self._algorithm_class)()
+        
     def schedule(self, source_ip: str, job_info: JobInfo):
         split_num = len(self._network_info.get_jobs()[job_info.get_job_name()]["split_points"])
         source_node = LayerNode(source_ip, 0)
         destination_node = LayerNode(job_info.get_terminal_destination(), split_num - 1)
-        path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._layered_graph_backlog, self._layer_nodes)
 
+        input_size = job_info.get_input_size()
+    
+        if self._algorithm_class == 'JDPCRA':
+            # schedule을 호출할 때마다,
+            self.update_expected_arrival_rate()         # 1. self._expected_arrival_rate를 갱신
+            # self.update_network_performance_info()      # 2. remaining computing resource를 구하여 self._network_performance_info에 저장
+            path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._dnn_models._yolo_computing_ratios, self._dnn_models._yolo_transfer_ratios, self._expected_arrival_rate, self._network_performance_info, input_size)
+        
+        elif self._algorithm_class == 'TLDOC':
+            if self._configs is None:
+                idle_power = self.load_config()
+                self._scheduling_algorithm.init_parameter(self._configs[0], self._configs[1], idle_power, self._dnn_models.transfer_ratios)
+            self.update_expected_arrival_rate()         #!check: TLDOC에서도 expected rate를 쓸 것인지, 진짜 값을 사용할 것인지
+            # self.update_network_performance_info()
+            path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._expected_arrival_rate, self._network_performance_info, input_size)
+        
+        else:
+            path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._layered_graph_backlog, self._layer_nodes)
+        
         return path
     
     # Method that return all layered grph's links of layer_node_ip.
@@ -181,19 +214,70 @@ class LayeredGraph:
     def get_layered_graph_backlog(self):
         return self._layered_graph_backlog
     
-    def get_arrival_rate(self, path):
+    def get_arrival_rate(self,path):
         arrival_rate = 0
         for i in range(len(path) - 1):
             source = path[i]
             destination = path[i + 1]
 
-            link = LayerNodePair(source = source,
-                                 destination = destination)
+            link = LayerNodePair(source = source, destination = destination)
             
             arrival_rate += self._layered_graph_backlog[link]
 
         return arrival_rate
 
-    
-    
+    def update_expected_arrival_rate(self, slot_arrival_rate):
+        """TODO: 이번 time slot에 들어온 job rate(slot_arrival_rate)(i.e., 강화학습이 처리한 프레임의 개수)를 기반으로 arrival rate를 계산한다.
+        """
+        self._expected_arrival_rate = self._alpha * self._expected_arrival_rate + (1-self._alpha) * slot_arrival_rate
+        
 
+    def init_network_performance_info(self):
+        """TODO: 각 (end), edge, cloud에 대해서 total computing resource를 self._network_performance_info에 저장한다.
+        * format: computing_capacities = {'end':, 'edge':, 'cloud'}, transmission_rates = {'end':, 'edge':}
+        """
+        computing_capacities = {
+            'end' : 235.8,
+            'edge' : 1280.0,
+            'cloud' : 9098.0
+        }
+        transmission_rates = {
+            'end' : 1000,
+            'edge' : 1000
+        }
+        
+        self._idle_network_performance_info = (computing_capacities, transmission_rates)
+        self._network_performance_info = copy.deepcopy(self._idle_network_performance_info)
+        
+        
+    def update_network_performance_info(self, node_name, ratio):
+        """TODO: 현재 time slot에서 각 (end), edge, cloud에 대해서 idle computing resource를 self._network_performance_info에 저장한다."""
+        self._network_performance_info[0][node_name] = self._idle_network_performance_info[0][node_name] * ratio
+    
+    
+    def load_config(self, config_path=None):
+        """TODO: path에 있는 파일에서 저장된 config value를 (layer별 time, energy) 불러와서 self._configs에 저장하고 power는 반환한다."""
+
+        end_config_path = glob.glob("spec/yolov5/end.csv")[0]
+        edge_config_path = glob.glob("spec/yolov5/edge.csv")[0]
+        cloud_config_path = glob.glob("spec/yolov5/cloud.csv")[0]
+
+        end_config = pd.read_csv(end_config_path)
+        edge_config = pd.read_csv(edge_config_path)
+        cloud_config = pd.read_csv(cloud_config_path)
+
+        time_config = {
+            'end': [0] + end_config.watt_hour.to_list(),
+            'edge': [0] + edge_config.watt_hour.to_list(),
+            'cloud': [0] + cloud_config.watt_hour.to_list()
+        }
+
+        energy_config = {
+            'end': [0] + end_config.latency.to_list(),
+            'edge': [0] + edge_config.latency.to_list(),
+            'cloud': [0] + cloud_config.latency.to_list()
+        }
+
+        self._configs = (time_config, energy_config)
+
+        return 1.7 # 측정 결과 초당 1.7w를 소모함
