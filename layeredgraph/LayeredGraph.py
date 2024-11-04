@@ -314,8 +314,8 @@ class LayeredGraph:
                 computing_backlog[node_name] += self._layered_graph_backlog[link]
 
 
-        end_wait_time = transfer_backlog["end"] / self._network_performance_info[0]["end"] + computing_backlog["end"] / self._network_performance_info[1]["end"]
-        edge_wait_time = transfer_backlog["edge"] / self._network_performance_info[0]["edge"] + computing_backlog["edge"] / self._network_performance_info[1]["edge"]
-        cloud_wait_time = computing_backlog["cloud"] / self._network_performance_info[1]["cloud"]
+        end_wait_time = computing_backlog["end"] / self._network_performance_info[0]["end"] + transfer_backlog["end"] / self._network_performance_info[1]["end"]
+        edge_wait_time = computing_backlog["edge"] / self._network_performance_info[0]["edge"] + transfer_backlog["edge"] / self._network_performance_info[1]["edge"]
+        cloud_wait_time = computing_backlog["cloud"] / self._network_performance_info[0]["cloud"]
 
         return end_wait_time + edge_wait_time + cloud_wait_time
