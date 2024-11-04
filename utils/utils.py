@@ -124,3 +124,26 @@ def load_model(model_name) -> torch.nn.Module:
         model = mobilenet_v2(pretrained=True, )
         model.eval()
         return model, -1 # TODO
+    
+def ensure_path_exists(path, is_file=False):
+    """
+    지정된 경로에 폴더 또는 파일이 있는지 확인하고, 없으면 생성합니다.
+    
+    Parameters:
+    path (str): 확인할 경로
+    is_file (bool): 파일 경로인지 여부를 지정 (True로 설정 시 파일이 없을 경우 빈 파일 생성)
+    """
+    if is_file:
+        # 파일의 상위 폴더가 없으면 폴더를 먼저 생성
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # 파일이 없으면 빈 파일 생성
+        if not os.path.exists(path):
+            with open(path, 'w') as f:
+                pass
+            print(f"File created at: {path}")
+        else:
+            print(f"File already exists at: {path}")
+    else:
+        # 폴더가 없으면 폴더 생성
+        os.makedirs(path, exist_ok=True)
+        print(f"Directory ensured at: {path}")
