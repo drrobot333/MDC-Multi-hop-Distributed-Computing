@@ -14,6 +14,15 @@ class LayerNodePair:
     def get_destination(self):
         return self._destination
     
+    def is_same_layer(self):
+        return self._source.is_same_layer(self._destination)
+    
+    def is_same_node(self):
+        return self._source.is_same_node(self._destination)
+    
+    def is_same_layer_node(self):
+        return self._source.is_same_layer_node(self._destination)
+    
     def __hash__(self):
         return hash(self.to_string())
     
