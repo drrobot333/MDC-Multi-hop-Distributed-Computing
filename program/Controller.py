@@ -246,10 +246,10 @@ class Controller(Program):
         if network_performance.get_ip() == "192.168.1.5":
             self._layered_graph.update_network_performance_info('end', network_performance.get_gpu_capacity())
 
-        elif network_performance.get_ip() == "192.168.1.6":
+        elif network_performance.get_ip() == "192.168.1.7":
             self._layered_graph.update_network_performance_info('edge', network_performance.get_gpu_capacity())
 
-        elif network_performance.get_ip() == "192.168.1.7":
+        elif network_performance.get_ip() == "192.168.1.8":
             self._layered_graph.update_network_performance_info('cloud', network_performance.get_gpu_capacity())
 
     def notify_finish(self):
