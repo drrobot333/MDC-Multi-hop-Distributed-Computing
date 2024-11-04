@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import time
 import threading
-from GPUUtilManager import GPUUtilManager
+from spec.GPUUtilManager import GPUUtilManager
 from utils import ensure_path_exists, load_model, split_model
 from typing import List
 
