@@ -1,6 +1,7 @@
 import subprocess
 import platform
 import re
+import sys
 
 
 class GPUUtilManager:
@@ -29,12 +30,20 @@ class GPUUtilManager:
         else:
             # Jetson에서는 tegrastats 사용
             try:
-                result = subprocess.run("tegrastats --version", shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    print("Error: tegrastats not found or not supported.")
-                    return 0
-                # Jetson Nano는 GPU 1개로 간주
-                return 1
+                if sys.version_info.minor > 6:
+                    result = subprocess.run("tegrastats --version", shell=True, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        print("Error: tegrastats not found or not supported.")
+                        return 0
+                    # Jetson Nano는 GPU 1개로 간주
+                    return 1
+                else:
+                    result = subprocess.run("tegrastats --version", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    if result.returncode != 0:
+                        print("Error: tegrastats not found or not supported.")
+                        return 0
+                    # Jetson Nano는 GPU 1개로 간주
+                    return 1
             except FileNotFoundError:
                 print("tegrastats not available on this system.")
                 return 0
@@ -68,53 +77,105 @@ class GPUUtilManager:
                 print("No data returned from nvidia-smi.")
                 return None
         else:
-            # Jetson Nano에서는 gpu_id를 사용하지 않음. 항상 0번째 GPU만 있음.
-            if gpu_id != 0:
-                print(f"Invalid GPU ID: {gpu_id}. Jetson Nano has only one GPU.")
-                return None
-            
-            # tegrastats 명령어 실행
-            try:
-                result = subprocess.run("sudo tegrastats | head -n 1", shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    print("Error in executing tegrastats.")
+            if sys.version_info.minor > 6:
+                # Jetson Nano에서는 gpu_id를 사용하지 않음. 항상 0번째 GPU만 있음.
+                if gpu_id != 0:
+                    print(f"Invalid GPU ID: {gpu_id}. Jetson Nano has only one GPU.")
                     return None
                 
-                output = result.stdout.strip()
-                if output:
-                    # tegrastats 출력에서 GPU 관련 데이터 파싱
-                        # Regular expressions to match RAM and GR3D_FREQ values
-                    ram_pattern = r'RAM (\d+)/(\d+)MB'
-                    gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
-                    power_pattern = r'VDD_IN (\d+)mW/(\d+)mW'
-
-                    # Extract RAM and GR3D_FREQ using regex search
-                    ram_match = re.search(ram_pattern, output)
-                    gr3d_freq_match = re.search(gr3d_freq_pattern, output)
-                    power_match = re.search(power_pattern, output)
-
-                    if ram_match and gr3d_freq_match:
-                        mem_used = int(ram_match.group(1))
-                        gpu_util = int(gr3d_freq_match.group(1))
-                        power = int(power_match.group(1))
-                    
-                    if gpu_util is not None and mem_used is not None:
-                        stats = {
-                            "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
-                            "utilization": gpu_util,  # %
-                            "memory_usage": mem_used  # MB
-                        }
-                        self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
-                        return stats
-                    else:
-                        print("Failed to parse GPU data from tegrastats output.")
+                # tegrastats 명령어 실행
+                try:
+                    result = subprocess.run("sudo tegrastats | head -n 1", shell=True, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        print("Error in executing tegrastats.")
                         return None
-                else:
-                    print("No data returned from tegrastats.")
+                    
+                    output = result.stdout.strip()
+                    if output:
+                        # tegrastats 출력에서 GPU 관련 데이터 파싱
+                            # Regular expressions to match RAM and GR3D_FREQ values
+                        ram_pattern = r'RAM (\d+)/(\d+)MB'
+                        gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
+                        power_pattern = r'VDD_IN (\d+)mW/(\d+)mW'
+
+                        # Extract RAM and GR3D_FREQ using regex search
+                        ram_match = re.search(ram_pattern, output)
+                        gr3d_freq_match = re.search(gr3d_freq_pattern, output)
+                        power_match = re.search(power_pattern, output)
+
+                        if ram_match and gr3d_freq_match:
+                            mem_used = int(ram_match.group(1))
+                            gpu_util = int(gr3d_freq_match.group(1))
+                            power = int(power_match.group(1))
+                        
+                        if gpu_util is not None and mem_used is not None:
+                            stats = {
+                                "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
+                                "utilization": gpu_util,  # %
+                                "memory_usage": mem_used  # MB
+                            }
+                            self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
+                            return stats
+                        else:
+                            print("Failed to parse GPU data from tegrastats output.")
+                            return None
+                    else:
+                        print("No data returned from tegrastats.")
+                        return None
+
+                except FileNotFoundError:
+                    print("tegrastats command not found.")
                     return None
-            except FileNotFoundError:
-                print("tegrastats command not found.")
-                return None
+
+            else:
+                # Jetson Nano에서는 gpu_id를 사용하지 않음. 항상 0번째 GPU만 있음.
+                if gpu_id != 0:
+                    print(f"Invalid GPU ID: {gpu_id}. Jetson Nano has only one GPU.")
+                    return None
+                
+                # tegrastats 명령어 실행
+                try:
+                    result = subprocess.run("sudo tegrastats | head -n 1", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    if result.returncode != 0:
+                        print("Error in executing tegrastats.")
+                        return None
+                    
+                    output = result.stdout.strip()
+                    if output:
+                        # tegrastats 출력에서 GPU 관련 데이터 파싱
+                            # Regular expressions to match RAM and GR3D_FREQ values
+                        ram_pattern = r'RAM (\d+)/(\d+)MB'
+                        gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
+                        power_pattern = r'POM_5V_IN (\d+)/(\d+)'
+
+                        # Extract RAM and GR3D_FREQ using regex search
+                        ram_match = re.search(ram_pattern, output)
+                        gr3d_freq_match = re.search(gr3d_freq_pattern, output)
+                        power_match = re.search(power_pattern, output)
+
+                        if ram_match and gr3d_freq_match:
+                            mem_used = int(ram_match.group(1))
+                            gpu_util = int(gr3d_freq_match.group(1))
+                            power = int(power_match.group(1))
+                        
+                        if gpu_util is not None and mem_used is not None:
+                            stats = {
+                                "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
+                                "utilization": gpu_util,  # %
+                                "memory_usage": mem_used  # MB
+                            }
+                            self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
+                            return stats
+                        else:
+                            print("Failed to parse GPU data from tegrastats output.")
+                            return None
+                    else:
+                        print("No data returned from tegrastats.")
+                        return None
+
+                except FileNotFoundError:
+                    print("tegrastats command not found.")
+                    return None
 
     def get_all_gpu_stats(self):
         """모든 GPU의 상태를 가져옵니다"""
