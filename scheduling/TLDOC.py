@@ -8,7 +8,10 @@ from latencymodel.TLDOC import cal_total_latency, cal_total_latency_except_end
 
 class TLDOC:
     def __init__(self):
-        pass
+        self._t_wait = 0
+
+    def set_t_wait(self, t_wait):
+        self._t_wait = t_wait
     
     def init_parameter(self, time_config, energy_config, idle_power, transfer_ratios, scale=0.5, V=1.0, latency_allowed=25, default_rate=0.1):
         """ config shape 
@@ -93,7 +96,7 @@ class TLDOC:
     
     def _get_violation_rate(self, off_tensor, network_info, data_size_list):
         actual_rate = 0
-        total_latency = cal_total_latency(off_tensor, self._time_config, network_info, data_size_list)
+        total_latency = cal_total_latency(off_tensor, self._time_config, network_info, data_size_list, self._t_wait)
         if total_latency > self._latency_allowed:  
             actual_rate = ((total_latency - self._latency_allowed)/self._latency_allowed)*100
         return actual_rate
@@ -102,7 +105,7 @@ class TLDOC:
     def _cal_total_energy(self, off_tensor, network_info, data_size_list):
         E_cal = sum(self._energy_config['end'][:off_tensor[0]])
         E_comm = self._energy_config['end_to_edge'][off_tensor[0]]
-        E_idle = cal_total_latency_except_end(off_tensor, self._time_config, network_info, data_size_list) * self._idle_power
+        E_idle = cal_total_latency_except_end(off_tensor, self._time_config, network_info, data_size_list, self._t_wait) * self._idle_power
         
         total_energy = E_cal + E_comm + E_idle
         return total_energy

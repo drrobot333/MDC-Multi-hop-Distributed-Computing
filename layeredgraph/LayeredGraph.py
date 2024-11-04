@@ -4,7 +4,7 @@ from communication import NetworkInfo
 from layeredgraph import LayerNode, LayerNodePair
 from job import JobInfo
 from job.DNNModels import DNNModels
-from scheduling import Dijkstra
+from scheduling import Dijkstra, JDPCRA, TLDOC
 
 import importlib
 import time
@@ -183,11 +183,13 @@ class LayeredGraph:
             path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._dnn_models._yolo_computing_ratios, self._dnn_models._yolo_transfer_ratios, self._expected_arrival_rate, self._network_performance_info, input_size)
         
         elif self._algorithm_class == 'TLDOC':
+            self._scheduling_algorithm: TLDOC
             if self._configs is None:
                 idle_power = self.load_config()
                 self._scheduling_algorithm.init_parameter(self._configs[0], self._configs[1], idle_power, self._dnn_models.transfer_ratios)
             # self.update_expected_arrival_rate()         #!check: TLDOC에서도 expected rate를 쓸 것인지, 진짜 값을 사용할 것인지
             # self.update_network_performance_info()
+            self._scheduling_algorithm.set_t_wait(self.get_t_wait())
             path = self._scheduling_algorithm.get_path(source_node, destination_node, self._layered_graph, self._expected_arrival_rate, self._network_performance_info, input_size)
         
         else:
