@@ -267,15 +267,15 @@ class LayeredGraph:
         cloud_config = pd.read_csv(cloud_config_path)
 
         time_config = {
-            'end': [0] + end_config.watt_hour.to_list(),
-            'edge': [0] + edge_config.watt_hour.to_list(),
-            'cloud': [0] + cloud_config.watt_hour.to_list()
-        }
-
-        energy_config = {
             'end': [0] + end_config.latency.to_list(),
             'edge': [0] + edge_config.latency.to_list(),
             'cloud': [0] + cloud_config.latency.to_list()
+        }
+
+        energy_config = {
+            'end': [0] + end_config.watt_hour.to_list(),
+            'edge': [0] + edge_config.watt_hour.to_list(),
+            'cloud': [0] + cloud_config.watt_hour.to_list()
         }
 
         self._configs = (time_config, energy_config)
