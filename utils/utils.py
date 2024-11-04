@@ -19,9 +19,9 @@ def get_ip_address(interface_name=["eth0"]):
             return ip
 
 def get_ip_address_windows(interface_name='eth0'):
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    return ip_address
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("naver.com", 443))
+    return sock.getsockname()[0]
 
 def get_ip_address_linux(interface_name='eth0'):
     try:
