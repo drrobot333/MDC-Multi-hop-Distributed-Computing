@@ -179,7 +179,4 @@ class GPUUtilManager:
 
     def get_all_gpu_stats(self):
         """모든 GPU의 상태를 가져옵니다"""
-        all_stats = {}
-        for gpu_id in range(self.gpu_count):
-            all_stats[gpu_id] = self.get_gpu_stats(gpu_id)
-        return all_stats
+        return self.get_gpu_stats(0)
