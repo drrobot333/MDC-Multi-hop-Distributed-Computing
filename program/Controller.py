@@ -241,7 +241,7 @@ class Controller(Program):
             os._exit(1)
 
     def handle_network_performance_info(self, topic, payload, publisher):
-        network_performance: NetworkPerformance = pickle.load(payload)
+        network_performance: NetworkPerformance = pickle.loads(payload)
 
         if network_performance.get_ip() == "192.168.1.5":
             self._layered_graph.update_network_performance_info('end', network_performance.get_gpu_capacity())
