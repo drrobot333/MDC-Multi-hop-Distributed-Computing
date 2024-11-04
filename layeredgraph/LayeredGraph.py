@@ -177,6 +177,7 @@ class LayeredGraph:
         input_size = job_info.get_input_size()
     
         if self._algorithm_class == 'JDPCRA':
+            self._scheduling_algorithm: JDPCRA
             # schedule을 호출할 때마다,
             # self.update_expected_arrival_rate()         # 1. self._expected_arrival_rate를 갱신
             # self.update_network_performance_info()      # 2. remaining computing resource를 구하여 self._network_performance_info에 저장
