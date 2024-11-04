@@ -270,7 +270,7 @@ class LayeredGraph:
         end_config = pd.read_csv(end_config_path)
         edge_config = pd.read_csv(edge_config_path)
         cloud_config = pd.read_csv(cloud_config_path)
-        end_to_edge_config = pd.reset_option(end_to_edge_config_path)
+        end_to_edge_config = pd.read_csv(end_to_edge_config_path)
 
         time_config = {
             'end': end_config.latency.to_list(),
