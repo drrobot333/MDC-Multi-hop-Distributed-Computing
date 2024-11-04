@@ -69,7 +69,8 @@ class Sender(MDC):
             dnn_output_bytes = pickle.dumps(dnn_output)
                 
             # send job to next node
-            self._node_publisher[destination_ip].publish(f"job/{subtask_info.get_job_type()}", dnn_output_bytes)
+            # self._node_publisher[destination_ip].publish(f"job/{subtask_info.get_job_type()}", dnn_output_bytes)
+            publish.single(f"job/{subtask_info.get_job_type()}", dnn_output_bytes, hostname=destination_ip)
 
             self._capacity_manager.update_computing_capacity(computing_capacity)
 
