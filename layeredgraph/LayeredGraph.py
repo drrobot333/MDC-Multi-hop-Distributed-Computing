@@ -187,7 +187,7 @@ class LayeredGraph:
             self._scheduling_algorithm: TLDOC
             if self._configs == None:
                 idle_power = self.load_config()
-                self._scheduling_algorithm.init_parameter(self._configs[0], self._configs[1], idle_power, self._dnn_models.transfer_ratios)
+                self._scheduling_algorithm.init_parameter(self._configs[0], self._configs[1], idle_power, self._dnn_models._yolo_transfer_ratios)
                 print("init configs")
             # self.update_expected_arrival_rate()         #!check: TLDOC에서도 expected rate를 쓸 것인지, 진짜 값을 사용할 것인지
             # self.update_network_performance_info()
