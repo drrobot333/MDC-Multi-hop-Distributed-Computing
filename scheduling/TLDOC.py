@@ -32,7 +32,7 @@ class TLDOC:
 
     def get_path(self, source_node: LayerNode, destination_node: LayerNode, layered_graph, arrival_rate, network_info, input_size):
         data_size_list = [ input_size * arrival_rate * ratio for ratio in self._transfer_ratios ] #! check: index 확인 
-        max_layer = len(self._transfer_ratios) - 1  # 4개
+        max_layer = len(self._transfer_ratios) - 2  # 4개
         off_tensor = self._lp_offloading(max_layer, network_info, data_size_list)
         partition_point_1, partition_point_2 = off_tensor[0], off_tensor[0]+off_tensor[1]
         path = self._make_path(source_node, destination_node, layered_graph, partition_point_1, partition_point_2)
@@ -112,63 +112,83 @@ class TLDOC:
     
     
     def _make_path(self, source_node, destination_node, layered_graph, partition_point_1, partition_point_2):
-        
-        path = []
-        path.append(source_node)
-        neighbors = layered_graph[source_node][:]
-        sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
-        
-        # end computing
+        path = [source_node]
+        current_node = source_node
         count = 0
-        for node in sorted_neighbors:
-            if count >= partition_point_1:
-                break 
+
+        # Traverse from source to end_last_node
+        while count < partition_point_1 - 1:
+            neighbors = layered_graph.get(current_node, [])[:]
+            sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
             
-            if source_node.is_same_node(node):
-                path.append(node)
-                count += 1
-        
-        end_last_node = node
-        neighbors = layered_graph[end_last_node][:]
+            found = False
+            for node in sorted_neighbors:
+                if current_node.is_same_node(node):
+                    path.append(node)
+                    current_node = node
+                    count += 1
+                    found = True
+                    break
+            
+            if not found:
+                break
+
+        end_last_node = current_node
+
+        # Traverse from end_last_node to edge_top_node
+        neighbors = layered_graph.get(end_last_node, [])[:]
         sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
         
-        # end -> edge
         for node in sorted_neighbors:
             if not end_last_node.is_same_node(node):
                 path.append(node)
+                current_node = node
                 break
-        
-        edge_top_node = node
-        neighbors = layered_graph[edge_top_node][:]
-        sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
-        
-        # edge computing
-        for node in sorted_neighbors:
-            if count >= partition_point_2:
-                break 
+
+        edge_top_node = current_node
+        count = 0  # Reset count for the second partition traversal
+
+        # Traverse from edge_top_node to edge_last_node
+        while count < partition_point_2 - 1:
+            neighbors = layered_graph.get(current_node, [])[:]
+            sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
             
-            if edge_top_node.is_same_node(node):
-                path.append(node)
-                count += 1
-        
-        edge_last_node = node 
-        neighbors = layered_graph[edge_last_node][:]
+            found = False
+            for node in sorted_neighbors:
+                if edge_top_node.is_same_node(node):
+                    path.append(node)
+                    current_node = node
+                    count += 1
+                    found = True
+                    break
+            
+            if not found:
+                break
+
+        edge_last_node = current_node
+
+        # Traverse from edge_last_node to cloud_node
+        neighbors = layered_graph.get(edge_last_node, [])[:]
         sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
         
-        # edge -> cloud
         for node in sorted_neighbors:
             if destination_node.is_same_node(node):
                 path.append(node)
-                break 
-        
-        cloud_node = node
+                current_node = node
+                break
+
+        cloud_node = current_node
         cloud_layer = cloud_node.get_layer()
-        neighbors = layered_graph[cloud_node][:]
-        sorted_neighbors = sorted(neighbors, key=lambda neighbor: neighbor.get_layer())
+
+        # Traverse in the cloud computing phase
+        neighbors = layered_graph.get(cloud_node, [])[:]
         
-        # cloud computing 
-        for node in neighbors:
-            if destination_node.is_same_node(node) and cloud_layer < node.get_layer():
-                path.append(node)
-        
+        while not destination_node.is_same_layer_node(path[-1]):
+            neighbors = layered_graph[path[-1]][:]
+
+            for node in neighbors:
+                if destination_node.is_same_node(node) and cloud_layer < node.get_layer():
+                    path.append(node)
+                    break
+
         return path
