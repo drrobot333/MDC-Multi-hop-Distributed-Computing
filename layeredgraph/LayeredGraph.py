@@ -265,10 +265,12 @@ class LayeredGraph:
         end_config_path = glob.glob("spec/yolov5/end.csv")[0]
         edge_config_path = glob.glob("spec/yolov5/edge.csv")[0]
         cloud_config_path = glob.glob("spec/yolov5/cloud.csv")[0]
+        end_to_edge_config_path = glob.glob("spec/yolov5/end_to_edge.csv")[0]
 
         end_config = pd.read_csv(end_config_path)
         edge_config = pd.read_csv(edge_config_path)
         cloud_config = pd.read_csv(cloud_config_path)
+        end_to_edge_config = pd.reset_option(end_to_edge_config_path)
 
         time_config = {
             'end': end_config.latency.to_list(),
@@ -280,7 +282,7 @@ class LayeredGraph:
             'end': end_config.watt_hour.to_list(),
             'edge': edge_config.watt_hour.to_list(),
             'cloud': cloud_config.watt_hour.to_list(),
-            'end_to_edge': 0.15849,
+            'end_to_edge': end_to_edge_config.watt_hour.to_list(),
         }
 
         self._configs = (time_config, energy_config)
