@@ -8,9 +8,10 @@ from calflops import calculate_flops
 import sys
 
 class DNNModels:
-    def __init__(self, network_info: NetworkInfo, device):
+    def __init__(self, network_info: NetworkInfo, device, address):
         self._network_info = network_info
         self._device = device
+        self._address = address
 
         self._jobs: List[str] = []
         self._subtasks: Dict[str, List[torch.nn.Module]] = dict()
@@ -56,15 +57,17 @@ class DNNModels:
             self._computing_ratios[job_name] = computing_ratios
             self._transfer_ratios[job_name] = transfer_ratios
 
-            with torch.no_grad():
+            if not self._address in self._network_info.get_router():
 
-                x = torch.zeros(job["warmup_input"]).to(self._device)
+                with torch.no_grad():
 
-                for index, subtask in enumerate(self._subtasks[job_name]):
-                    x : torch.Tensor = subtask(x)
+                    x = torch.zeros(job["warmup_input"]).to(self._device)
 
-            print(f"Succesfully load {job_name}")
-            return
+                    for index, subtask in enumerate(self._subtasks[job_name]):
+                        x : torch.Tensor = subtask(x)
+
+                print(f"Succesfully load {job_name}")
+                return
 
         computings = torch.zeros(len(self._subtasks[job_name]))
         transfers = torch.zeros(len(self._subtasks[job_name]))

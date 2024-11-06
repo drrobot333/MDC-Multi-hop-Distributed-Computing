@@ -30,7 +30,7 @@ class JobManager:
 
         self._virtual_queue = VirtualQueue()
         self._ahead_of_time_outputs = AheadOutputQueue()
-        self._dnn_models = DNNModels(self._network_info, self._device)
+        self._dnn_models = DNNModels(self._network_info, self._device, address)
         
         self.init_garbage_subtask_collector()
 
