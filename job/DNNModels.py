@@ -67,7 +67,7 @@ class DNNModels:
                         x : torch.Tensor = subtask(x)
 
                 print(f"Succesfully load {job_name}")
-                return
+            return
 
         computings = torch.zeros(len(self._subtasks[job_name]))
         transfers = torch.zeros(len(self._subtasks[job_name]))
