@@ -27,7 +27,7 @@ class LayeredGraph:
 
         self._max_layer_depth = 0
 
-        self._dnn_models = DNNModels(self._network_info, "cpu")
+        self._dnn_models = DNNModels(self._network_info, "cpu", "192.168.1.2")
         
         self._alpha = 0.5
         self._expected_arrival_rate = 0
