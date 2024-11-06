@@ -73,7 +73,13 @@ class JobManager:
     def get_backlogs(self):
         return self._virtual_queue.get_backlogs()
 
-    def run(self, output: DNNOutput) -> Tuple[DNNOutput, float]:
+    def run(self, output: DNNOutput, is_compressed: bool = False) -> Tuple[DNNOutput, float]:
+        if is_compressed:
+            job_name = output.get_subtask_info().get_job_name()
+            decompressed_shape = tuple(self._network_info.get_jobs()[job_name]["real_shape"])
+            real_data = torch.rand(decompressed_shape)
+            output = DNNOutput(real_data, output.get_subtask_info())
+
         previous_subtask_info = output.get_subtask_info()
         if previous_subtask_info.get_job_type() == "dnn":
             # get next destination
