@@ -265,7 +265,11 @@ class Controller(Program):
         node_info: NodeInfo = pickle.loads(payload)
         ip = node_info.get_ip()
 
-        arrival_rate_bytes = pickle.dumps(self._arrival_rate)
+        if "Dijkstra" in self._network_info.get_scheduling_algorithm():
+            arrival_rate_bytes = pickle.dumps(self._arrival_rate)
+
+        else:
+            arrival_rate_bytes = pickle.dumps(0)
 
         # send arrival_rate byte to source ip (response)
         publish.single("mdc/arrival_rate", arrival_rate_bytes, hostname=ip)
