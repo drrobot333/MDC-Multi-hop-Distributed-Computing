@@ -111,7 +111,7 @@ class GPUUtilManager:
                         if gpu_util is not None and mem_used is not None:
                             stats = {
                                 "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
-                                "utilization": gpu_util,  # %
+                                "utilization": gpu_util / 100,  # %
                                 "memory_usage": mem_used  # MB
                             }
                             self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
@@ -161,7 +161,7 @@ class GPUUtilManager:
                         if gpu_util is not None and mem_used is not None:
                             stats = {
                                 "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
-                                "utilization": gpu_util,  # %
+                                "utilization": gpu_util / 100,  # %
                                 "memory_usage": mem_used  # MB
                             }
                             self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
