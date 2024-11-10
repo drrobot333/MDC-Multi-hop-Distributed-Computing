@@ -79,21 +79,21 @@ class Controller(Program):
 
     def garbage_job_collector(self):
         collect_garbage_job_time = self._network_info.get_collect_garbage_job_time()
-        job_name = "test job 1"
-        while True:
-            time.sleep(collect_garbage_job_time)
+        for job_name in self._network_info.get_jobs():
+            while True:
+                time.sleep(collect_garbage_job_time)
 
-            cur_time = time.time_ns()
+                cur_time = time.time_ns()
 
-            self._job_list_mutex.acquire()
-            keys_to_delete = [job_id for job_id, start_time_nano in self._job_list.items() if cur_time - start_time_nano >= collect_garbage_job_time * 1_000_000_000]
-            for k in keys_to_delete:
-                latency = collect_garbage_job_time * 1_000_000_000
-                latency_log_file_path = f"{self._latency_log_path}/{job_name}.csv"
-                save_latency(latency_log_file_path, latency)
-                del self._job_list[k]
+                self._job_list_mutex.acquire()
+                keys_to_delete = [job_id for job_id, start_time_nano in self._job_list.items() if cur_time - start_time_nano >= collect_garbage_job_time * 1_000_000_000]
+                for k in keys_to_delete:
+                    latency = collect_garbage_job_time * 1_000_000_000
+                    latency_log_file_path = f"{self._latency_log_path}/{job_name}.csv"
+                    save_latency(latency_log_file_path, latency)
+                    del self._job_list[k]
 
-            print(f"Deleted {len(keys_to_delete)} jobs. {len(self._job_list)} remains.")
+                print(f"Deleted {len(keys_to_delete)} jobs. {len(self._job_list)} remains.")
 
             self._job_list_mutex.release()
 
