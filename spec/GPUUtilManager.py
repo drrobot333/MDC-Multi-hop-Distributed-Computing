@@ -3,6 +3,7 @@ import platform
 import re
 import threading
 import time
+import sys
 
 
 class GPUUtilManager:
@@ -55,19 +56,35 @@ class GPUUtilManager:
                         # EMA 업데이트
                         self.ema_gpu_util = (self.alpha * gpu_util) + ((1 - self.alpha) * self.ema_gpu_util)
                 else:
-                    # Jetson에서 tegrastats를 사용하여 GPU 사용률 수집
-                    result = subprocess.run("tegrastats | head -n 1", shell=True, capture_output=True, text=True)
-                    output = result.stdout.strip()
-                    if output:
-                        gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
-                        gr3d_freq_match = re.search(gr3d_freq_pattern, output)
+                    if sys.version_info.minor > 6:
+                        # Jetson에서 tegrastats를 사용하여 GPU 사용률 수집
+                        result = subprocess.run("tegrastats | head -n 1", shell=True, capture_output=True, text=True)
+                        output = result.stdout.strip()
+                        if output:
+                            gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
+                            gr3d_freq_match = re.search(gr3d_freq_pattern, output)
 
-                        if gr3d_freq_match:
-                            gpu_util = int(gr3d_freq_match.group(1)) / 100  # %로 변환
-                            # EMA 업데이트
-                            self.ema_gpu_util = (self.alpha * gpu_util) + ((1 - self.alpha) * self.ema_gpu_util)
+                            if gr3d_freq_match:
+                                gpu_util = int(gr3d_freq_match.group(1)) / 100  # %로 변환
+                                # EMA 업데이트
+                                self.ema_gpu_util = (self.alpha * gpu_util) + ((1 - self.alpha) * self.ema_gpu_util)
+                        else:
+                            print("No data returned from tegrastats.")
+
                     else:
-                        print("No data returned from tegrastats.")
+                        # Jetson에서 tegrastats를 사용하여 GPU 사용률 수집
+                        result = subprocess.run("tegrastats | head -n 1", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                        output = result.stdout.strip()
+                        if output:
+                            gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
+                            gr3d_freq_match = re.search(gr3d_freq_pattern, output)
+
+                            if gr3d_freq_match:
+                                gpu_util = int(gr3d_freq_match.group(1)) / 100  # %로 변환
+                                # EMA 업데이트
+                                self.ema_gpu_util = (self.alpha * gpu_util) + ((1 - self.alpha) * self.ema_gpu_util)
+                        else:
+                            print("No data returned from tegrastats.")
             except FileNotFoundError:
                 print("Command not found.")
             time.sleep(0.5)  # 1초마다 데이터 업데이트
