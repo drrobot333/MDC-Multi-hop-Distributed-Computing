@@ -149,10 +149,10 @@ class GPUUtilManager:
                         # Extract RAM and GR3D_FREQ using regex search
                         gr3d_freq_match = re.search(gr3d_freq_pattern, output)
 
-                        if ram_match and gr3d_freq_match:
+                        if gr3d_freq_match:
                             gpu_util = int(gr3d_freq_match.group(1))
                         
-                        if gpu_util is not None and mem_used is not None:
+                        if gpu_util is not None:
                             stats = {
                                 "power_usage": 0 / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
                                 "utilization": gpu_util / 100,  # %
