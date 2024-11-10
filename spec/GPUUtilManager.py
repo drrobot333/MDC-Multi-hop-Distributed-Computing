@@ -135,7 +135,7 @@ class GPUUtilManager:
                 
                 # tegrastats 명령어 실행
                 try:
-                    result = subprocess.run("sudo tegrastats | head -n 1", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    result = subprocess.run("tegrastats | head -n 1", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                     if result.returncode != 0:
                         print("Error in executing tegrastats.")
                         return None
@@ -144,25 +144,19 @@ class GPUUtilManager:
                     if output:
                         # tegrastats 출력에서 GPU 관련 데이터 파싱
                             # Regular expressions to match RAM and GR3D_FREQ values
-                        ram_pattern = r'RAM (\d+)/(\d+)MB'
                         gr3d_freq_pattern = r'GR3D_FREQ (\d+)%'
-                        power_pattern = r'POM_5V_IN (\d+)/(\d+)'
 
                         # Extract RAM and GR3D_FREQ using regex search
-                        ram_match = re.search(ram_pattern, output)
                         gr3d_freq_match = re.search(gr3d_freq_pattern, output)
-                        power_match = re.search(power_pattern, output)
 
                         if ram_match and gr3d_freq_match:
-                            mem_used = int(ram_match.group(1))
                             gpu_util = int(gr3d_freq_match.group(1))
-                            power = int(power_match.group(1))
                         
                         if gpu_util is not None and mem_used is not None:
                             stats = {
-                                "power_usage": power / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
+                                "power_usage": 0 / 1000,  # Jetson Nano에서 정확한 전력 소모는 별도 방법 필요
                                 "utilization": gpu_util / 100,  # %
-                                "memory_usage": mem_used  # MB
+                                "memory_usage": 0  # MB
                             }
                             self.gpu_stats[gpu_id] = stats  # 조회한 상태를 저장
                             return stats
