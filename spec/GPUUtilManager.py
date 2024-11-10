@@ -33,11 +33,18 @@ class GPUUtilManager:
             return int(result.stdout.strip())
         else:
             try:
-                result = subprocess.run("tegrastats --version", shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    print("Error: tegrastats not found or not supported.")
-                    return 0
-                return 1  # Jetson Nano는 GPU 1개로 간주
+                if sys.version_info.minor > 6:
+                    result = subprocess.run("tegrastats --version", shell=True, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        print("Error: tegrastats not found or not supported.")
+                        return 0
+                    return 1  # Jetson Nano는 GPU 1개로 간주
+                else:
+                    result = subprocess.run("tegrastats --version", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    if result.returncode != 0:
+                        print("Error: tegrastats not found or not supported.")
+                        return 0
+                    return 1  # Jetson Nano는 GPU 1개로 간주
             except FileNotFoundError:
                 print("tegrastats not available on this system.")
                 return 0
