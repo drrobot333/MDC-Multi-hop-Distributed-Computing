@@ -13,6 +13,7 @@ import paho.mqtt.publish as publish
 import MQTTclient
 import pickle
 import time
+import threading
 
 class MDC(Program):
     def __init__(self, sub_config, pub_configs):
@@ -53,6 +54,8 @@ class MDC(Program):
         super().__init__(self.sub_config, self.pub_configs, self.topic_dispatcher, self.topic_dispatcher_checker)
 
         self.request_network_info()
+        self.init_job_queue_manager()
+        
 
     # request network information to network controller
     # sending node info.
@@ -164,22 +167,39 @@ class MDC(Program):
                 # if cao
                 is_compressed = self._address == "192.168.1.8" and self._network_info.get_queue_name() == "cao"
 
-                dnn_output, computing_capacity = self._job_manager.run(output=previous_dnn_output, is_compressed=is_compressed)
-
-                subtask_info = dnn_output.get_subtask_info()
-                destination_ip = subtask_info.get_destination().get_ip()
-
-                dnn_output.get_subtask_info().set_next_subtask_id()
-
-                dnn_output_bytes = pickle.dumps(dnn_output)
-                    
-                # send job to next node
-                publish.single(f"job/{subtask_info.get_job_type()}", dnn_output_bytes, hostname=destination_ip)
-
-                self._capacity_manager.update_computing_capacity(computing_capacity)
+                # dnn_output, computing_capacity = self._job_manager.queue_job(output=previous_dnn_output, is_compressed=is_compressed)
+                self._job_manager.queue_job(output=previous_dnn_output, is_compressed=is_compressed)
+                print("queueing job")
             else:
                 self._job_manager.add_dnn_output(previous_dnn_output)
+    
+    def init_job_queue_manager(self):
+        job_queue_manager_thread = threading.Thread(target=self.job_queue_manager, args=())
+        job_queue_manager_thread.start()
 
+    def job_queue_manager(self):
+        while True:
+            if self._job_manager == None:
+                continue
+            self._job_manager.job_result_mutext.acquire()
+            if len(self._job_manager._job_result_queue) == 0:
+                self._job_manager.job_result_mutext.release()
+                continue
+            dnn_output, computing_capacity = self._job_manager._job_result_queue.pop(0)
+            print("pop result")
+            self._job_manager.job_result_mutext.release()
+
+            subtask_info = dnn_output.get_subtask_info()
+            destination_ip = subtask_info.get_destination().get_ip()
+
+            dnn_output.get_subtask_info().set_next_subtask_id()
+
+            dnn_output_bytes = pickle.dumps(dnn_output)
+                
+            # send job to next node
+            publish.single(f"job/{subtask_info.get_job_type()}", dnn_output_bytes, hostname=destination_ip)
+
+            self._capacity_manager.update_computing_capacity(computing_capacity)
        
 if __name__ == '__main__':
     sub_config = {

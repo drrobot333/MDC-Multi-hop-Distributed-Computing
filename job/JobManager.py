@@ -28,8 +28,14 @@ class JobManager:
         self._virtual_queue = VirtualQueue()
         self._ahead_of_time_outputs = AheadOutputQueue()
         self._dnn_models = DNNModels(self._network_info, self._device, address)
+
+        self._job_queue = []
+        self._job_result_queue = []
+        self.mutex = threading.Lock()
+        self.job_result_mutext = threading.Lock()
         
         self.init_garbage_subtask_collector()
+        self.init_job_queue_manager()
 
     def is_subtask_exists(self, output: DNNOutput):
         previous_subtask_info = output.get_subtask_info()
@@ -62,6 +68,30 @@ class JobManager:
             time.sleep(collect_garbage_job_time)
 
             self._virtual_queue.garbage_subtask_collector(collect_garbage_job_time)
+
+    def init_job_queue_manager(self):
+        job_queue_manager_thread = threading.Thread(target=self.job_queue_manager, args=())
+        job_queue_manager_thread.start()
+
+    def job_queue_manager(self):
+        while True:
+            self.mutex.acquire()
+            if len(self._job_queue) == 0:
+                self.mutex.release()
+                continue
+            output, is_compressed = self._job_queue.pop(0)
+            print("pop job")
+            self.mutex.release()
+            dnn_output, computing_capacity = self.run(output, is_compressed)
+
+            self.job_result_mutext.acquire()
+            self._job_result_queue.append((dnn_output, computing_capacity))
+            self.job_result_mutext.release()
+            
+    def queue_job(self, output, is_compressed):
+        self.mutex.acquire()
+        self._job_queue.append((output, is_compressed))
+        self.mutex.release()
 
     def garbage_dnn_output_collector(self):
         collect_garbage_job_time = self._network_info.get_collect_garbage_job_time()
