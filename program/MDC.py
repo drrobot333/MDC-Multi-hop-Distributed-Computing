@@ -211,12 +211,12 @@ if __name__ == '__main__':
             "ip": "127.0.0.1", 
             "port": 1883,
             "topics": [
-                ("job/dnn", 1),
-                ("job/subtask_info", 1),
-                ("mdc/network_info", 1),
-                ("mdc/node_info", 1),
-                ("mdc/finish", 1),
-                ("mdc/network_performance_info", 1),
+                ("job/dnn", 2),
+                ("job/subtask_info", 2),
+                ("mdc/network_info", 2),
+                ("mdc/node_info", 2),
+                ("mdc/finish", 2),
+                ("mdc/network_performance_info", 2),
             ],
         }
     
